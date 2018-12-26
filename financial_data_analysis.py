@@ -72,6 +72,7 @@ optimal_plot.set(xlabel="Time(Quarter)", ylabel="SES Model GNP Returns", title="
 
 # 1.3 Autoregressive models
 
+# Check why AR and ARMA of same order return different results
 # ar_model = AR(training_data)
 # min_aic = 20000000
 # min_order=0
