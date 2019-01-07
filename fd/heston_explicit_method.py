@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.sparse import spdiags
+from scipy.interpolate import interp2d
 
 # set constants
 T = 3
@@ -14,14 +15,14 @@ S0 = 1.3
 Smax = 3
 I = 4
 dS = (Smax - 0)/float(I)
-S = np.linspace(S0, Smax, I+1)
+S = np.linspace(0, Smax, I+1)
 
 # generate grid for Y
 Y0 = 0.01
 Ymax = 0.1
 J = 4
 dY = (Ymax-0)/float(J)
-Y = np.linspace(Y0, Ymax, J+1)
+Y = np.linspace(0, Ymax, J+1)
 Y.shape = (J+1,1)
 
 # number of time steps
@@ -30,9 +31,10 @@ dt = T/float(M)
 
 # boundary conditions
 # boundary at maturity
-K = 1.5
+K = 1.2
 V = map(lambda x: max(K-x,0), S)
 V = np.concatenate([V]*(I+1), axis=0)
+
 
 # calculate coefficients
 i = S/dS
@@ -73,8 +75,11 @@ for i in range(1,I+1):
     mat = spdiags(data, [1,0,-1], J+1, I+1).toarray().transpose()
     matrix[i][i-1] = mat
 
-A = matrix.swapaxes(1,2).reshape((25,25))
+A = matrix.swapaxes(1,2).reshape(((I+1)**2,(I+1)**2))
 for i in range(M):
     V = np.matmul(A,V)
 
 print V
+
+f = interp2d(S,[x[0] for x in Y], V.reshape((I+1),(J+1)))
+print f(S0,Y0)

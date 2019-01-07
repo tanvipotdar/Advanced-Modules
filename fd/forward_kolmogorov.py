@@ -18,7 +18,7 @@ dS = (Smax - S0)/float(I)
 S = np.linspace(S0, Smax, I+1)
 
 # generate grid for Y
-Y0 = 0.0
+Y0 = 0
 Ymax = 0.1
 J = 4
 dY = (Ymax-Y0)/float(J)
@@ -79,6 +79,3 @@ for i in range(M):
     V = np.matmul(A,V)
 
 print V
-
-f = interp2d(S,[x[0] for x in Y], V.reshape((I+1),(J+1)))
-print f(1.3,0.01)
