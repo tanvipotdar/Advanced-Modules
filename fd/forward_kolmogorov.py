@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.sparse import spdiags
+from scipy.interpolate import interp2d
 
 # set constants
-T = 3
+T = 1
 r = 0.03
 rho = -0.2
 xi = 0.2
@@ -10,17 +11,17 @@ kappa = 2
 theta = 0.0015
 
 # generate grid for S
-S0 = 1.3
+S0 = 0
 Smax = 3
 I = 4
-dS = (Smax - 0)/float(I)
+dS = (Smax - S0)/float(I)
 S = np.linspace(S0, Smax, I+1)
 
 # generate grid for Y
-Y0 = 0.01
+Y0 = 0.0
 Ymax = 0.1
 J = 4
-dY = (Ymax-0)/float(J)
+dY = (Ymax-Y0)/float(J)
 Y = np.linspace(Y0, Ymax, J+1)
 Y.shape = (J+1,1)
 
@@ -29,10 +30,10 @@ M = 4
 dt = T/float(M)
 
 # boundary conditions
-# boundary at maturity
-K = 1.5
+K = 1.2
 V = map(lambda x: max(K-x,0), S)
-V = np.concatenate([V]*(I+1), axis=0)
+# generate (I+1) x (J+1) values for V^m_ij over all values of i and j
+V = np.concatenate([V]*(J+1), axis=0)
 
 # calculate coefficients
 i = S/dS
@@ -44,15 +45,15 @@ j = Y/dY
 term1 = np.matmul(j, i*i)
 term2 = np.matmul(j,i)
 
-j = np.array(map(lambda x:[x[0]]*(J+1), j))
-Y = np.array(map(lambda x:[x[0]]*(J+1), Y))
+j = np.array(map(lambda x:[x[0]]*5, j))
+Y = np.array(map(lambda x:[x[0]]*5, Y))
 
 term_c = 1-term1*dt*dY -j*dt*xi**2/dY -r*dt
-term_e = 0.5*term1*dY*dt + 0.5*dt*i*r
-term_w = 0.5*term1*dY*dt - 0.5*dt*i*r
+term_w = 0.5*term1*dY*dt + 0.5*dt*i*r
+term_e = 0.5*term1*dY*dt - 0.5*dt*i*r
 
-term_n = 0.5*dt*(xi**2*j/dY + (kappa/dY)*(theta-Y))
-term_s = 0.5*dt*(xi**2*j/dY - (kappa/dY)*(theta-Y))
+term_s = 0.5*dt*(xi**2*j/dY + (kappa/dY)*(theta-Y))
+term_n = 0.5*dt*(xi**2*j/dY - (kappa/dY)*(theta-Y))
 term_b = 0.25*xi*rho*term2*dt
 
 # final matrix will be (J+1)(I+1) x (J+1)(I+1)
@@ -78,3 +79,6 @@ for i in range(M):
     V = np.matmul(A,V)
 
 print V
+
+f = interp2d(S,[x[0] for x in Y], V.reshape((I+1),(J+1)))
+print f(1.3,0.01)
