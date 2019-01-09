@@ -2,7 +2,7 @@ import numpy as np
 from scipy.sparse import spdiags
 from scipy.interpolate import interp2d
 
-def get_solution(I=4, J=4, M=4, T=3, S0=1.3, Y0=0.01):
+def get_solution(I=4, J=4, M=4, T=1, S0=1.3, Y0=0.01):
     '''
     Computes the solution for a european put using the explicit scheme for the heston model
     I - number of S steps in grid
@@ -33,6 +33,7 @@ def get_solution(I=4, J=4, M=4, T=3, S0=1.3, Y0=0.01):
     Y.shape = (J+1,1)
 
     # number of time steps
+    # M = 4
     dt = T/float(M)
 
     # boundary conditions
@@ -40,8 +41,6 @@ def get_solution(I=4, J=4, M=4, T=3, S0=1.3, Y0=0.01):
     K = 1.2
     V = map(lambda x: max(K-x,0), S)
     V = np.concatenate([V]*(I+1), axis=0)
-
-    # TODO: boundary when S=0, Y=0
 
     # calculate coefficients
     i = S/dS
