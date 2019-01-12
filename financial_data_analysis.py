@@ -24,23 +24,16 @@ testing_data = log_returns[231:]
 
 
 # plotting training data log returns
-training_returns_plot, ax = plt.subplots(figsize=(10,5))
 training_returns_plot = training_data.plot()
 training_returns_plot.set(xlabel="Time(Quarter)", ylabel="GNP quarterly growth rate", title="Log returns over time")
 
 # plotting training data acf
-acf_plot, ax = plt.subplots(figsize=(10,5))
-ax.set_xlabel('Lags')
-ax.set_ylabel('ACF')
-acf_plot = plot_acf(training_data, ax=ax, lags=20)
-
+acf_plot = plot_acf(training_data)
+acf_plot.set(xlabel="Lags", ylabel="Autocorrelation", title="Autocorrelation function for log returns")
 
 # plotting training data pacf
-pacf_plot, ax = plt.subplots(figsize=(10,5))
-ax.set_xlabel('Lags')
-ax.set_ylabel('PACF')
-pacf_plot = plot_pacf(training_data, ax=ax, lags=20)
-
+pacf_plot = plot_pacf(training_data)
+pacf_plot.set(xlabel="Lags", ylabel="Partial Autocorrelation", title="Partial Autocorrelation function for log returns")
 
 # 1.2 Exponential Smoothing 
 ses = training_data.to_frame('y')
@@ -65,9 +58,8 @@ for alpha in alpha_values:
  errors.set_index('alpha', inplace=True)
 
 # plot of alpha values versus in sample SSE
-sse_plot, ax = plt.subplots(figsize=(10,5))
-sse_plot = errors.plot(figsize=(10,5))
-sse_plot.set(xlabel="Alpha", ylabel="Sum of squared errors (SSE)", title="SSE versus alpha")
+sse_plot = errors.plot()
+sse_plot.set(xlabel="Alpha", ylabel="Sum of squared errors", title="SSE for alpha values")
 
 # optimal value of alpha that minimises in sample SSE
 optimal_alpha = errors.idxmin()
@@ -75,8 +67,8 @@ optimal_alpha = errors.idxmin()
 # plot of in-sample model response vs optimal alpha 
 optimal_df = ses[['y', 's_0.52']]
 optimal_df = optimal_df.rename(columns={'y':'Actual GNP Returns', 's_0.52':'GNP Returns using optimal alpha'})
-optimal_plot = optimal_df.plot(figsize=(10,5))
-optimal_plot.set(xlabel="Time(Quarter)", ylabel="Optimal SES Model GNP returns", title="Optimal SES Model vs Actual GNP returns")
+optimal_plot = optimal_df.plot()
+optimal_plot.set(xlabel="Time(Quarter)", ylabel="SES Model GNP Returns", title="Optimal SES vs Actual GNP Returns")
 
 # 1.3 Autoregressive models
 
@@ -95,7 +87,7 @@ optimal_plot.set(xlabel="Time(Quarter)", ylabel="Optimal SES Model GNP returns",
 min_aic = 20000000
 min_order=0
 for p in range(1,21):
-	model = ARMA(training_data, order=(p,0))
+	model = ARMA(training_data[1:], order=(p,0))
 	model_fit = model.fit()
 	model_aic = model_fit.aic
 	if model_aic < min_aic:
@@ -131,11 +123,10 @@ preds=ar_prediction.to_frame('Optimal AR(16) predictions')
 td =  testing_data.to_frame('Actual GNP Returns')
 ar_vs_td = td.join(preds)
 
-ar_vs_td_plot = ar_vs_td.plot(figsize=(10,5))
-ar_vs_td_plot.set(xlabel="Time(Quarter)", ylabel="Optimal AR Model GNP Returns", title="Optimal AR vs Actual GNP Returns")
+ar_vs_td_plot = ar_vs_td.plot()
+ar_vs_td_plot.set(xlabel="Time(Quarter)", ylabel="AR Model GNP Returns", title="Optimal AR vs Actual GNP Returns")
 
-ar_vs_td['Out-of-sample errors'] = ar_vs_td['Actual GNP Returns'] - ar_vs_td['Optimal AR(16) predictions']
-pdf_plot = ar_vs_td[['Out-of-sample errors']].plot.kde(figsize=(10,5))
+pdf_plot = ar_vs_td[['Out-of-sample errors']].plot.kde()
 pdf_plot.set(title="Probability Density Function of out of sample errors")
 
 rmse_persistence_data = []
@@ -181,23 +172,10 @@ mae_ar = pd.Series(data=mae_ar_data, index=range(1,13)).to_frame('AR Optimal')
 
 
 rmse_df = rmse_persistence.join(rmse_climatology).join(rmse_ses).join(rmse_ar)
-rmse_plot = rmse_df.plot(figsize=(10,5))
+rmse_plot = rmse_df.plot()
 rmse_plot.set(xlabel="Horizon", ylabel="RMSE", title="RMSE")
 
 
 mae_df = mae_persistence.join(mae_climatology).join(mae_ses).join(mae_ar)
-mae_plot = mae_df.plot(figsize=(10,5))
+mae_plot = mae_df.plot()
 mae_plot.set(xlabel="Horizon", ylabel="MAE", title="MAE")
-
-# naive composite forecast scheme
-naive_composite = [(climatology_forecast[i]+ses_forecast[i])/2 for i,x in enumerate(climatology_forecast)]
-
-rmse_naive_data = []
-mae_naive_data = []
-for p in naive_composite:
-	k = len(p)
-	e = p - testing_data.head(k)
-	rmse_naive_data.append((e**2).mean()**.5)
-	mae_naive_data.append(e.abs().mean())
-rmse_naive = pd.Series(data=rmse_naive_data, index=range(1,13)).to_frame('Naive Composite')
-mae_naive = pd.Series(data=mae_naive_data, index=range(1,13)).to_frame('Naive Composite') 
