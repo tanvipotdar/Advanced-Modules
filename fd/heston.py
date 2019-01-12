@@ -3,7 +3,6 @@ from scipy.sparse import spdiags
 from scipy.interpolate import interp2d
 
 
-
 def create_stock_price_grid(Smin, Smax, I):
     '''
     Return a linspace vector of S values from Smin to Smax
@@ -26,7 +25,6 @@ def get_payoff_values_at_maturity(K, S, J):
     V = map(lambda x: max(K - x, 0), S)
     V = np.concatenate([V] * J, axis=0)
     return V
-
 
 def calculate_stencil_coefficients(i, j, Y, J, dY, dt, r=0.03, kappa=2, xi=0.2, rho=-0.2, theta=0.015):
     '''
@@ -62,7 +60,6 @@ def calculate_stencil_coefficients(i, j, Y, J, dY, dt, r=0.03, kappa=2, xi=0.2, 
 
     return term_c, term_e, term_w, term_n, term_s, term_b
 
-
 def get_matrix(term_c, term_e, term_w, term_n, term_s, term_b, I, J):
     matrix = np.zeros((J, I, J, I))
     for i in range(I):
@@ -83,7 +80,6 @@ def get_matrix(term_c, term_e, term_w, term_n, term_s, term_b, I, J):
     A = matrix.swapaxes(1, 2).reshape((I ** 2, J ** 2))
     return A
 
-
 def get_smin_boundary_values(V, term_w, initial_val, I):
     '''
     Return an array with values filled for V11, V12, V13, V14
@@ -97,14 +93,11 @@ def get_smin_boundary_values(V, term_w, initial_val, I):
     smin_boundary = w_terms * initial_val
     return smin_boundary
 
-
 def get_smax_boundary_values(V, term_e, term_b, I, J):
     '''
     Return an array with values filled for V41, V42, V43 
     array contains values: term_e(I,j)*P(I+1,j) + term_b*(-P(I+1, j-1) + P(I+1, j+1))
-
     We know from discretised boundary condition (5) that P(I+1,j) = P(I,j)
-
     term_e(I,j)*P(I+1,j) + term_b*(-P(I+1, j-1) + P(I+1, j+1)) = term_e(I,j)*P(I,j) + term_b*(-P(I, j-1) + P(I, j+1))
     Return - [0,0,0,w(4,1),0,0,0,w(4,2),0...]
     '''
@@ -125,7 +118,6 @@ def get_smax_boundary_values(V, term_e, term_b, I, J):
         b_boundary_vals = np.insert(b_boundary_vals, i, tuple([0] * (J - 1)))
     smax_boundary = e_boundary_vals + b_boundary_vals
     return smax_boundary
-
 
 def get_jmin_boundary_values(V, I, J, i, r, kappa, theta, dt, dY, jmins, initial_val, term_s, term_b):
     '''
@@ -154,14 +146,11 @@ def get_jmin_boundary_values(V, I, J, i, r, kappa, theta, dt, dY, jmins, initial
     jmins[:J] = term_s[0]*jmin_vals + term_b[0]*jmin_diff
     return jmins
     
-
 def get_jmax_boundary_values(V, term_n, term_b, initial_val, I):
     '''
     Return an array with values filled for V14, V24, V34, V44 as those are the terms to add to
     array contains values: term_e(I,j)*P(I+1,j) + term_b*(-P(I+1, j-1) + P(I+1, j+1))
-
     We know from discretised boundary condition (5) that P(I+1,j) = P(I,j)
-
     term_e(I,j)*P(I+1,j) + term_b*(-P(I+1, j-1) + P(I+1, j+1)) = term_e(I,j)*P(I,j) + term_b*(-P(I, j-1) + P(I, j+1))
     Return - [0,0,0,...,w(4,1),w(4,2),w(4,3),w(4,4)]
     '''
@@ -170,10 +159,8 @@ def get_jmax_boundary_values(V, term_n, term_b, initial_val, I):
     jmax_boundary[-I:] = jmax_values
     return jmax_boundary
 
-
 def calculate_payoff_for_previous_timestep(A, V, smin_boundary_values, smax_boundary_values, jmin_boundary_values, jmax_boundary_values):
     return np.matmul(A,V) + smin_boundary_values + smax_boundary_values + jmin_boundary_values + jmax_boundary_values
-
 
 def compute_price(I=4, J=4, M=4):
     # set constants
@@ -225,4 +212,3 @@ def compute_price(I=4, J=4, M=4):
 
     f = interp2d(S, Y, V.reshape(I, J))
     return f(S0, Y0)
-
