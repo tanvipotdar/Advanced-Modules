@@ -12,7 +12,8 @@ from statsmodels.tsa.arima_model import ARMA
 	return x
 
 # 1.1
-gnp_data = pd.read_csv('/Users/tanvipotdar/Projects/Advanced-Numerical-Methods/GNP.csv', index_col='DATE')
+# set PATH accordingly
+gnp_data = pd.read_csv(PATH, index_col='DATE')
 log_returns = np.log(gnp_data.GNP/gnp_data.shift(1).GNP)*100
 log_returns.dropna(inplace=True)
 dates_index = pd.to_datetime(log_returns.index)
@@ -79,18 +80,6 @@ optimal_plot = optimal_df.plot(figsize=(10,5))
 optimal_plot.set(xlabel="Time(Quarter)", ylabel="Optimal SES Model GNP returns", title="Optimal SES Model vs Actual GNP returns")
 
 # 1.3 Autoregressive models
-
-# Check why AR and ARMA of same order return different results
-# ar_model = AR(training_data)
-# min_aic = 20000000
-# min_order=0
-# for p in range(1,21):
-# 	model_fit = ar_model.fit(p)
-# 	model_aic = model_fit.aic
-# 	if model_aic < min_aic:
-# 		min_aic = model_aic
-# 		min_order = p
-
 
 min_aic = 20000000
 min_order=0
@@ -201,3 +190,14 @@ for p in naive_composite:
 	mae_naive_data.append(e.abs().mean())
 rmse_naive = pd.Series(data=rmse_naive_data, index=range(1,13)).to_frame('Naive Composite')
 mae_naive = pd.Series(data=mae_naive_data, index=range(1,13)).to_frame('Naive Composite') 
+
+rmse_df['Naive Composite'] = rmse_naive['Naive Composite']
+mae_df['Naive Composite'] = mae_naive['Naive Composite']
+
+rmse_naive_plot = rmse_df.plot(figsize=(10,5))
+rmse_naive_plot.set(xlabel="Horizon", ylabel="RMSE", title="RMSE")
+mae_naive_plot = mae_df.plot(figsize=(10,5))
+mae_naive_plot.set(xlabel="Horizon", ylabel="MAE", title="MAE")
+
+
+
