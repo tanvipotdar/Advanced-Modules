@@ -4,7 +4,7 @@ import numpy as np
 # define all parameters
 T = 1                           # expiry (hours)
 N = 1e4                         # number of shares
-mc_paths = 1e4                  # number of monte carlo simulations
+mc_paths = 10000                # number of monte carlo simulations
 s_sigma = 0.027                 # vol of the stock
 s0 = 100                        # initial stock price
 phi = 1e-3                      # running inventory penalty
@@ -79,7 +79,7 @@ def run_almgren_chriss_with_stochastic_pi():
     s = np.zeros(t+1)			# mid-price process
     e = np.zeros(t+1)			# execution price process
     v = np.zeros(t+1)			# trading speed process
-    x = np.zerios(t+1)			# income process
+    x = np.zeros(t+1)			# income process
     q = np.zeros(t+1)			# shares to liquidate
     q_liq = np.zeros(t+1)		# shares liquidated 
 
@@ -123,7 +123,7 @@ def calculate_performance():
 	for x in range(mc_paths):
 		cash_from_constant_strategy[x] = run_almgren_chriss_with_constant_pi()
 		cash_from_stochastic_strategy[x] = run_almgren_chriss_with_stochastic_pi()
-		performance[x] = (cash_from_stochastic_strategy[x] - cash_from_constant_strategy[x])/cash_from_constant_strategy[x] * 10^4
+		performance[x] = (cash_from_stochastic_strategy[x] - cash_from_constant_strategy[x])/cash_from_constant_strategy[x] * mc_paths
 
 	return performance
 
