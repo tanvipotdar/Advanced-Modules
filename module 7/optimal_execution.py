@@ -2,130 +2,128 @@
 import numpy as np
 
 # define all parameters
-T = 1                           # expiry (hours)
-N = 1e4                         # number of shares
-mc_paths = 10000                # number of monte carlo simulations
-s_sigma = 0.027                 # vol of the stock
-s0 = 100                        # initial stock price
-phi = 1e-3                      # running inventory penalty
-alpha = 1e-3                    # terminal liquidation penalty
-k_eta = 0.1                     # mean reversion rate of k
-k_mu = 1e-4                     # long running mean of k
-k_sigma = 1.5e-3                # vol of k
+T = 1  # expiry (hours)
+N = 1e4  # number of shares
+s_sigma = 0.027  # vol of the stock
+s0 = 100  # initial stock price
+phi = 1e-3  # running inventory penalty
+alpha = 1e-3  # terminal liquidation penalty
 
-b_eta = 0.01                    # mean reversion rate of b
-b_mu = 1e-4                     # long running mean of b
-b_sigma = 3e-3                  # vol of b
+k_eta = 10  # mean reversion rate of k
+k_mu = 1e-3  # long running mean of k
+k_sigma = 1.5e-3  # vol of k
+
+b_eta = 10  # mean reversion rate of b
+b_mu = 2e-3  # long running mean of b
+b_sigma = 3e-3  # vol of b
 
 
 def run_almgren_chriss_with_constant_pi():
     # time in minutes
-    t = T*60
+    t = T * 60
 
     # stochastic processes
-    w = np.random.randn(t+1)	# brownian motion for stock price, normal random variables
-    s = np.zeros(t+1)			# mid-price process
-    e = np.zeros(t+1)			# execution price process
-    v = np.zeros(t+1)			# trading speed process
-    x = np.zeros(t+1)			# income process
-    q = np.zeros(t+1)			# shares to liquidate
-    q_liq = np.zeros(t+1)		# shares liquidated 
-
+    w = np.random.randn(t + 1)  # brownian motion for stock price, normal random variables
+    s = np.zeros(t + 1)  # mid-price process
+    e = np.zeros(t + 1)  # execution price process
+    v = np.zeros(t + 1)  # trading speed process
+    x = np.zeros(t + 1)  # income process
+    q = np.zeros(t + 1)  # inventory process
 
     q[0] = N
-    gamma = np.sqrt(phi/k_mu)
-    zeta = (alpha - 0.5*b_mu + np.sqrt(phi*k_mu))/(alpha - 0.5*b_mu - np.sqrt(phi*k_mu))
+    gamma = np.sqrt(phi / k_mu)
+    zeta = (alpha - 0.5 * b_mu + np.sqrt(phi * k_mu)) / (alpha - 0.5 * b_mu - np.sqrt(phi * k_mu))
 
-    for i in range(t+1):
-    	s[i] = s0 if i==0 else q[i-1]- b_mu*v[i-1]/t + s_sigma*w[i]*np.sqrt(t)
-    	tT = (t-i)/t
-    	v_num = zeta*np.exp(gamma*tT) + np.exp(-gamma*tT)
-    	v_denom = zeta*np.exp(gamma*T) + np.exp(-gamma*T)
-    	v[i] = gamma*(v_num/v_denom) * q[i]
-    	v[i] = max(v[i],0)/60
-    	e[i] = s[i] - k_mu*v[i]
-    	q_liq[i] = min(v[i],q[i])
-    	x[i] = e[i]*q_liq[i]
-    	if i==t:
-    		x[i] = 0
-    		q[i] = q[i-1]
-    	else:
-    		q[i+1] = q[i] - q_liq[i]
-    		x[i] = e[i]*q_liq[i]
+    for i in range(t + 1):
+        q[i] = N if i == 0 else q[i - 1] - v[i - 1]
+        s[i] = s0 if i == 0 else s[i - 1] - (b_mu * v[i - 1] / 60 + s_sigma * w[i] * np.sqrt(i / 60.))
 
-    x[t] = q[t]*(s[t] - alpha*q[t])
+        tT = (t - i) / float(t)
+        v_num = zeta * np.exp(gamma * tT) + np.exp(-gamma * tT)
+        v_denom = zeta * np.exp(gamma * T) - np.exp(-gamma * T)
+        v[i] = gamma * (v_num / v_denom) * q[i]
+        v[i] = max(v[i], 0) / 60.
+        e[i] = s[i] - k_mu * v[i]
+        if i == t:
+            x[i] = 0
+            q[i] = q[i - 1]
+        else:
+            x[i] = e[i] * min(v[i], q[i])
+
+    x[t] = q[t] * (s[t] - alpha * q[t])
     terminal_x = np.sum(x)
     return terminal_x
 
 
 def calculate_stochastic_path(mu, eta, sigma):
-	t = T*60					
-	w = np.random.randn(t+1)		# brownian motion for the price impact param
-	pi = np.zeros(t+1)				# path for the price impact param
+    t = T * 60
+    w = np.random.randn(t + 1)  # brownian motion for the price impact param
+    pi_path = np.zeros(t + 1)  # path for the price impact param
+    pi_path[0] = mu
 
-	for i in range(t+1):
-		tT = (t-i)/t
-		pi[i] = mu + sigma*np.sqrt((np.exp(-2*eta*tT))/(2*eta))*w[i]
-	return pi
-
+    for i in range(1, t + 1):
+        # tT = (t - i) / t
+        # pi_path[i] = mu if i == 0 else mu + sigma * np.sqrt((np.exp(-2 * eta * tT)) / (2 * eta)) * w[i] * np.sqrt(i/60)
+        pi_path[i] = pi_path[i - 1] + (eta * mu - eta * pi_path[i - 1]) / 60. + sigma * w[i] * np.sqrt((i * pi_path[i - 1]) / 60.)
+    return pi_path
 
 
 def run_almgren_chriss_with_stochastic_pi():
     # time in minutes
-    t = T*60
+    t = T * 60
 
     # stochastic processes
-    w = np.random.randn(t+1)	# brownian motion for stock price, normal random variables
-    s = np.zeros(t+1)			# mid-price process
-    e = np.zeros(t+1)			# execution price process
-    v = np.zeros(t+1)			# trading speed process
-    x = np.zeros(t+1)			# income process
-    q = np.zeros(t+1)			# shares to liquidate
-    q_liq = np.zeros(t+1)		# shares liquidated 
+    w = np.random.randn(t + 1)  # brownian motion for stock price, normal random variables
+    s = np.zeros(t + 1)  # mid-price process
+    e = np.zeros(t + 1)  # execution price process
+    v = np.zeros(t + 1)  # trading speed process
+    x = np.zeros(t + 1)  # income process
+    q = np.zeros(t + 1)  # inventory process
 
     # coefficients for optimal speed
-    gamma = np.zeros(t+1)		
-    zeta = np.zeros(t+1)
+    gamma = np.zeros(t + 1)
+    zeta = np.zeros(t + 1)
 
     q[0] = N
     k = calculate_stochastic_path(k_mu, k_eta, k_sigma)
     b = calculate_stochastic_path(b_mu, b_eta, b_sigma)
 
-    for i in range(t+1):
-    	gamma[i] = np.sqrt(phi/k[i])
-    	zeta[i] = (alpha - 0.5*b[i] + np.sqrt(phi*k[i]))/(alpha - 0.5*b[i] - np.sqrt(phi*k[i]))
+    for i in range(t + 1):
+        gamma[i] = np.sqrt(phi / k[i])
+        zeta[i] = (alpha - 0.5 * b[i] + np.sqrt(phi * k[i])) / (alpha - 0.5 * b[i] - np.sqrt(phi * k[i]))
 
-    	s[i] = s0 if i==0 else q[i-1]- b[i]*v[i-1]/t + s_sigma*w[i]*np.sqrt(t)
-    	v_num = zeta[i]*np.exp(gamma[i]*tT) + np.exp(-gamma[i]*tT)
-    	v_denom = zeta[i]*np.exp(gamma[i]*T) + np.exp(-gamma[i]*T)
-    	v[i] = gamma[i]*(v_num/v_denom) * q[i]
-    	v[i] = max(v[i],0)/60
-    	e[i] = s[i] - k_mu*v[i]
-    	q_liq[i] = min(v[i],q[i])
+        q[i] = N if i == 0 else q[i - 1] - v[i - 1]
+        s[i] = s0 if i == 0 else s[i - 1] - (b[i] * v[i - 1] / 60 + s_sigma * w[i] * np.sqrt(i / 60.))
 
-    	if i==t:
-    		x[i] = 0
-    		q[i] = q[i-1]
-    	else:
-    		q[i+1] = q[i] - q_liq[i]
-    		x[i] = e[i]*q_liq[i]
+        tT = (t - i) / float(t)
+        v_num = zeta[i] * np.exp(gamma[i] * tT) + np.exp(-gamma[i] * tT)
+        v_denom = zeta[i] * np.exp(gamma[i] * T) - np.exp(-gamma[i] * T)
+        v[i] = gamma[i] * (v_num / v_denom) * q[i]
+        v[i] = max(v[i], 0) / 60.
+        e[i] = s[i] - k[i] * v[i]
+        if i == t:
+            x[i] = 0
+            q[i] = q[i - 1]
+        else:
+            x[i] = e[i] * min(v[i], q[i])
 
-    x[t] = q[t]*(s[t] - alpha*q[t])
+    x[t] = q[t] * (s[t] - alpha * q[t])
     terminal_x = np.sum(x)
     return terminal_x
 
 
-def calculate_performance():
-	cash_from_constant_strategy = np.zeros(mc_paths+1)
-	cash_from_stochastic_strategy = np.zeros(mc_paths+1)
-	performance = np.zeros(mc_paths+1)
+def calculate_performance(mc_paths):
+    cash_from_constant_strategy = np.zeros(mc_paths)
+    cash_from_stochastic_strategy = np.zeros(mc_paths)
+    performance = np.zeros(mc_paths)
 
-	for x in range(mc_paths):
-		cash_from_constant_strategy[x] = run_almgren_chriss_with_constant_pi()
-		cash_from_stochastic_strategy[x] = run_almgren_chriss_with_stochastic_pi()
-		performance[x] = (cash_from_stochastic_strategy[x] - cash_from_constant_strategy[x])/cash_from_constant_strategy[x] * mc_paths
+    for x in range(mc_paths):
+        cash_from_constant_strategy[x] = run_almgren_chriss_with_constant_pi()
+        cash_from_stochastic_strategy[x] = run_almgren_chriss_with_stochastic_pi()
+        performance[x] = (cash_from_stochastic_strategy[x] - cash_from_constant_strategy[x]) / cash_from_constant_strategy[x]
+        performance[x] *= 10000
 
-	return performance
+    return performance
 
 	
 
