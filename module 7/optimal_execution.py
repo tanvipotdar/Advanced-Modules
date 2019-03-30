@@ -124,17 +124,3 @@ def calculate_performance(mc_paths):
         performance[x] *= 10000
 
     return performance
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
