@@ -1,8 +1,6 @@
-
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
-
 
 # define all parameters
 T = 1  # expiry (hours)
@@ -33,13 +31,12 @@ def run_almgren_chriss_with_constant_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, b_
     x = np.zeros(t + 1)  # income process
     q = np.zeros(t + 1)  # inventory process
 
-    q[0] = N
     gamma = np.sqrt(phi / k_mu)
     zeta = (alpha - 0.5 * b_mu + np.sqrt(phi * k_mu)) / (alpha - 0.5 * b_mu - np.sqrt(phi * k_mu))
 
     for i in range(t + 1):
-        q[i] = N if i == 0 else q[i - 1] - min(v[i - 1], q[i-1])
-        s[i] = s0 if i == 0 else s[i - 1] - (b_mu * v[i - 1] / 60. + s_sigma * w[i])
+        q[i] = N if i == 0 else q[i - 1] - min(v[i - 1], q[i - 1])
+        s[i] = s0 if i == 0 else max(s[i - 1] + (- b_mu * v[i - 1] / 60. + s_sigma * w[i] * np.sqrt(i / 60.)), 0)
 
         tT = (t - i) / float(t)
         v_num = zeta * np.exp(gamma * tT) + np.exp(-gamma * tT)
@@ -47,7 +44,7 @@ def run_almgren_chriss_with_constant_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, b_
         v[i] = gamma * (v_num / v_denom) * q[i]
         # divide by 60 as dt=1/60
         v[i] = max(v[i], 0) / 60.
-        e[i] = s[i] - k_mu * v[i]
+        e[i] = max(s[i] - k_mu * v[i], 0)
         if i == t:
             x[i] = 0
             q[i] = q[i - 1]
@@ -71,8 +68,8 @@ def calculate_stochastic_path(mu, eta, sigma):
     return pi_path
 
 
-def run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, k_eta=k_eta, k_sigma=k_sigma, 
-	b_mu=b_mu, b_eta=b_eta, b_sigma=b_sigma, s_sigma=s_sigma):
+def run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, k_eta=k_eta, k_sigma=k_sigma, b_mu=b_mu, b_eta=b_eta, b_sigma=b_sigma,
+                                          s_sigma=s_sigma):
     # time in minutes
     t = T * 60
 
@@ -88,7 +85,6 @@ def run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, 
     gamma = np.zeros(t + 1)
     zeta = np.zeros(t + 1)
 
-    q[0] = N
     k = calculate_stochastic_path(k_mu, k_eta, k_sigma)
     b = calculate_stochastic_path(b_mu, b_eta, b_sigma)
 
@@ -96,15 +92,15 @@ def run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, 
         gamma[i] = np.sqrt(phi / k[i])
         zeta[i] = (alpha - 0.5 * b[i] + np.sqrt(phi * k[i])) / (alpha - 0.5 * b[i] - np.sqrt(phi * k[i]))
 
-        q[i] = N if i == 0 else q[i - 1] - v[i - 1]
-        s[i] = s0 if i == 0 else s[i - 1] - (b[i] * v[i - 1] / 60 + s_sigma * w[i] * np.sqrt(i / 60.))
+        q[i] = N if i == 0 else q[i - 1] - min(v[i - 1], q[i - 1])
+        s[i] = s0 if i == 0 else max(s[i - 1] - b[i] * v[i - 1] / 60 + s_sigma * w[i] * np.sqrt(i / 60.), 0)
 
         tT = (t - i) / float(t)
         v_num = zeta[i] * np.exp(gamma[i] * tT) + np.exp(-gamma[i] * tT)
         v_denom = zeta[i] * np.exp(gamma[i] * tT) - np.exp(-gamma[i] * tT)
         v[i] = gamma[i] * (v_num / v_denom) * q[i]
         v[i] = max(v[i], 0) / 60.
-        e[i] = s[i] - k[i] * v[i]
+        e[i] = max(s[i] - k[i] * v[i], 0)
         if i == t:
             x[i] = 0
             q[i] = q[i - 1]
@@ -115,72 +111,145 @@ def run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, 
     return x.cumsum(), q
 
 
-def calculate_performance(mc_paths):
+def calculate_performance(mc_paths, alpha=alpha, phi=phi, T=T, k_mu=k_mu, k_eta=k_eta, k_sigma=k_sigma, b_mu=b_mu, b_eta=b_eta, b_sigma=b_sigma,
+                          s_sigma=s_sigma):
     cash_from_constant_strategy = np.zeros(mc_paths)
     cash_from_stochastic_strategy = np.zeros(mc_paths)
     performance = np.zeros(mc_paths)
 
     for x in range(mc_paths):
-        cash_from_constant_strategy[x] = run_almgren_chriss_with_constant_pi()[0][-1]
-        cash_from_stochastic_strategy[x] = run_almgren_chriss_with_stochastic_pi()[0][-1]
+        cash_from_constant_strategy[x] = run_almgren_chriss_with_constant_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, b_mu=b_mu, s_sigma=s_sigma)[0][-1]
+        cash_from_stochastic_strategy[x] = run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, k_eta=k_eta, k_sigma=k_sigma,
+                                                                                 b_mu=b_mu, b_eta=b_eta, b_sigma=b_sigma, s_sigma=s_sigma)[0][-1]
         performance[x] = (cash_from_stochastic_strategy[x] - cash_from_constant_strategy[x]) / cash_from_constant_strategy[x]
         performance[x] *= 10000
-
 
     return performance
 
 
+def plot_income_and_inventory_against_cir_params(low_b, low_k, high_b, high_k, k_low, k_high, b_low, b_high):
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col')
+    ax1.set(ylabel='Income', xlabel='time (minutes)')
+    ax1.plot(k_low[0][:-1], label='k_mu={}'.format(low_k))
+    ax1.plot(k_high[0][:-1], label='k_mu={}'.format(high_k))
+    ax1.legend(loc="upper right")
+
+    ax2.set(ylabel='Inventory', xlabel='time (minutes)')
+    ax2.plot(k_low[1], label='k_mu={}'.format(low_k))
+    ax2.plot(k_high[1], label='k_mu={}'.format(high_k))
+    ax2.legend(loc="upper right")
+
+    ax3.set(ylabel='Income', xlabel='time (minutes)')
+    ax3.plot(b_low[0][:-1], label='b_mu={}'.format(low_b))
+    ax3.plot(b_high[0][:-1], label='b_mu={}'.format(high_b))
+    ax3.legend(loc="upper right")
+
+    ax4.set(ylabel='Inventory', xlabel='time (minutes)')
+    ax4.plot(b_low[1], label='b_mu={}'.format(low_b))
+    ax4.plot(b_high[1], label='b_mu={}'.format(high_b))
+    ax4.legend(loc="upper right")
+    plt.tight_layout()
+
+
 def plot_all():
-	# histogram of performance
-	histogram, ax = plt.subplots(figsize=(10,5))
-	ax.set(ylabel='Frequency', xlabel='Performance (bps)', title='Performance of stochastic vs constant AC')
-	histogram = plt.hist(a, density=False)
-	plt.show()
+    # histogram of performance
+    histogram, ax = plt.subplots(figsize=(10, 5))
+    ax.set(ylabel='Frequency', xlabel='Performance (bps)')
+    a = calculate_performance(10000)
+    histogram = plt.hist(a, density=False)
 
-	# plot inventory process with different alphas
-	a0001,b0001 = run_almgren_chriss_with_constant_pi(alpha=0.0001)
-	a001,b001 = run_almgren_chriss_with_constant_pi(alpha=0.001)
-	a01,b01=run_almgren_chriss_with_constant_pi(alpha=0.01)
-	a1,b1=run_almgren_chriss_with_constant_pi(alpha=0.1)
+    # plot income and inventory process with different alphas
+    a0001, b0001 = run_almgren_chriss_with_constant_pi(alpha=0.0001)
+    a001, b001 = run_almgren_chriss_with_constant_pi(alpha=0.001)
+    a01, b01 = run_almgren_chriss_with_constant_pi(alpha=0.01)
+    a1, b1 = run_almgren_chriss_with_constant_pi(alpha=0.1)
 
-	f, ((ax1, ax2)) = plt.subplots(1, 2, sharex='col')
-	ax1.set(ylabel='Inventory', xlabel='time (minutes)')
-	ax1.plot(b0001, label='alpha=0.0001')
-	ax1.plot(b001, label='alpha=0.001')
-	ax1.plot(b01, label='alpha=0.01')
-	ax1.plot(b1, label='alpha=0.1')
-	ax1.legend(loc="upper right")
+    f, (ax1, ax2) = plt.subplots(1, 2, sharex='col')
+    ax1.set(ylabel='Inventory', xlabel='time (minutes)')
+    ax1.plot(b0001, label='alpha=0.0001')
+    ax1.plot(b001, label='alpha=0.001')
+    ax1.plot(b01, label='alpha=0.01')
+    ax1.plot(b1, label='alpha=0.1')
+    ax1.legend(loc="upper right")
 
-	ax2.set(ylabel='Income earned', xlabel='time (minutes)')
-	ax2.plot(a0001[:-1], label='alpha=0.0001')
-	ax2.plot(a001[:-1], label='alpha=0.001')
-	ax2.plot(a01[:-1], label='alpha=0.01')
-	ax2.plot(a1[:-1], label='alpha=0.1')
-	ax2.legend(loc="upper left")
+    ax2.set(ylabel='Income earned', xlabel='time (minutes)')
+    ax2.plot(a0001[:-1], label='alpha=0.0001')
+    ax2.plot(a001[:-1], label='alpha=0.001')
+    ax2.plot(a01[:-1], label='alpha=0.01')
+    ax2.plot(a1[:-1], label='alpha=0.1')
+    ax2.legend(loc="upper left")
+    plt.tight_layout()
 
-	# plot inventory process with different phis
-	a0001,b0001 = run_almgren_chriss_with_constant_pi(phi=0.0001)
-	a001,b001 = run_almgren_chriss_with_constant_pi(phi=0.001)
-	a01,b01=run_almgren_chriss_with_constant_pi(phi=0.01)
-	a1,b1=run_almgren_chriss_with_constant_pi(phi=0.1)
+    # plot income and inventory process with different phis
+    a0001, b0001 = run_almgren_chriss_with_constant_pi(phi=0.0001)
+    a001, b001 = run_almgren_chriss_with_constant_pi(phi=0.001)
+    a01, b01 = run_almgren_chriss_with_constant_pi(phi=0.01)
+    a1, b1 = run_almgren_chriss_with_constant_pi(phi=0.1)
 
-	f, ((ax1, ax2)) = plt.subplots(1, 2, sharex='col')
-	ax1.set(ylabel='Inventory', xlabel='time (minutes)')
-	ax1.plot(b0001, label='phi=0.0001')
-	ax1.plot(b001, label='phi=0.001')
-	ax1.plot(b01, label='phi=0.01')
-	ax1.plot(b1, label='phi=0.1')
-	ax1.legend(loc="upper right")
+    f, (ax1, ax2) = plt.subplots(1, 2, sharex='col')
+    ax1.set(ylabel='Inventory', xlabel='time (minutes)')
+    ax1.plot(b0001, label='phi=0.0001')
+    ax1.plot(b001, label='phi=0.001')
+    ax1.plot(b01, label='phi=0.01')
+    ax1.plot(b1, label='phi=0.1')
+    ax1.legend(loc="upper right")
 
-	ax2.set(ylabel='Income earned', xlabel='time (minutes)')
-	ax2.plot(a0001[:-1], label='phi=0.0001')
-	ax2.plot(a001[:-1], label='phi=0.001')
-	ax2.plot(a01[:-1], label='phi=0.01')
-	ax2.plot(a1[:-1], label='phi=0.1')
-	ax2.legend(loc="upper left")
+    ax2.set(ylabel='Income earned', xlabel='time (minutes)')
+    ax2.plot(a0001[:-1], label='phi=0.0001')
+    ax2.plot(a001[:-1], label='phi=0.001')
+    ax2.plot(a01[:-1], label='phi=0.01')
+    ax2.plot(a1[:-1], label='phi=0.1')
+    ax2.legend(loc="upper left")
+    plt.tight_layout()
 
-	# plot 
+    # plot path of CIR process with different eta, sigma values
+    low_eta = 0.00001
+    high_eta = 100
+    etahigh = calculate_stochastic_path(k_mu, high_eta, k_sigma)
+    etalow = calculate_stochastic_path(k_mu, low_eta, k_sigma)
 
+    low_vol = 0.00001
+    high_vol = 0.1
+    volhigh = calculate_stochastic_path(k_mu, k_eta, high_vol)
+    vollow = calculate_stochastic_path(k_mu, k_eta, low_vol)
 
+    f, (ax2, ax3) = plt.subplots(1, 2, sharex='col')
+    ax2.set(ylabel='Path of CIR process', xlabel='time (minutes)')
+    ax2.plot(etalow, label='eta={}'.format(low_eta))
+    ax2.plot(etahigh, label='eta={}'.format(high_eta))
+    ax2.legend(loc="upper right")
 
+    ax3.set(ylabel='Path of CIR process', xlabel='time (minutes)')
+    ax3.plot(vollow, label='sigma={}'.format(low_vol))
+    ax3.plot(volhigh, label='sigma={}'.format(high_vol))
+    ax3.legend(loc="upper right")
+    plt.tight_layout()
 
+    # plot income with different mu values
+    low_kmu = 0.00001
+    high_kmu = 1000
+    kmu_low = run_almgren_chriss_with_constant_pi(k_mu=low_kmu)
+    kmu_high = run_almgren_chriss_with_constant_pi(k_mu=high_kmu)
+
+    low_bmu = 0.00001
+    high_bmu = 1000
+    bmu_low = run_almgren_chriss_with_constant_pi(b_mu=low_bmu)
+    bmu_high = run_almgren_chriss_with_constant_pi(b_mu=high_bmu)
+    plot_income_and_inventory_against_cir_params(low_bmu, low_kmu, high_bmu, high_kmu, kmu_low, kmu_high, bmu_low, bmu_high)
+
+    # plot stochastic ac income with different values of eta and vol
+    low_keta = 0.00001
+    high_keta = 1000
+    k_low = run_almgren_chriss_with_stochastic_pi(k_sigma=low_keta)
+    k_high = run_almgren_chriss_with_stochastic_pi(k_sigma=high_keta)
+
+    low_beta = 0.00001
+    high_beta = 1000
+    b_low = run_almgren_chriss_with_stochastic_pi(b_sigma=low_beta)
+    b_high = run_almgren_chriss_with_stochastic_pi(b_sigma=high_beta)
+    plot_income_and_inventory_against_cir_params(low_beta, low_keta, high_beta, high_keta, k_low, k_high, b_low, b_high)
+
+    # plot outperformance against alpha values
+    # alpha_values = range()
+    # calculate_performance(10000, alpha=0.0001)
+    # calculate_performance(10000, alpha=0.1)
