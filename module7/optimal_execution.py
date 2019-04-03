@@ -64,7 +64,7 @@ def calculate_stochastic_path(mu, eta, sigma):
     for i in range(1, t + 1):
         # tT = (t - i) / t
         # pi_path[i] = mu if i == 0 else mu + sigma * np.sqrt((np.exp(-2 * eta * tT)) / (2 * eta)) * w[i] * np.sqrt(i/60)
-        pi_path[i] = pi_path[i - 1] + (eta * mu - eta * pi_path[i - 1]) / 60. + sigma * w[i] * np.sqrt((i * pi_path[i - 1]) / 60.)
+        pi_path[i] = pi_path[i - 1] + (eta * mu - eta * pi_path[i - 1]) / 60. + sigma * w[i] * np.sqrt(i / 60.)
     return pi_path
 
 
@@ -213,7 +213,7 @@ def plot_all():
     volhigh = calculate_stochastic_path(k_mu, k_eta, high_vol)
     vollow = calculate_stochastic_path(k_mu, k_eta, low_vol)
 
-    f, (ax2, ax3) = plt.subplots(1, 2, sharex='col')
+    f, (ax2, ax3) = plt.subplots(1, 2, sharex='col', figsize=(8,3))
     ax2.set(ylabel='Path of CIR process', xlabel='time (minutes)')
     ax2.plot(etalow, label='eta={}'.format(low_eta))
     ax2.plot(etahigh, label='eta={}'.format(high_eta))
@@ -224,6 +224,7 @@ def plot_all():
     ax3.plot(volhigh, label='sigma={}'.format(high_vol))
     ax3.legend(loc="upper right")
     plt.tight_layout()
+    plt.show()
 
     # plot income with different mu values
     low_kmu = 0.00001
