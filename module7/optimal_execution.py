@@ -12,11 +12,11 @@ alpha = 1e-3  # terminal liquidation penalty
 
 k_eta = 10  # mean reversion rate of k
 k_mu = 1e-3  # long running mean of k
-k_sigma = 1.5e-3  # vol of k
+k_sigma = 1.e-5  # vol of k
 
 b_eta = 10  # mean reversion rate of b
 b_mu = 1e-3  # long running mean of b
-b_sigma = 3e-3  # vol of b
+b_sigma = 2e-5  # vol of b
 
 
 def run_almgren_chriss_with_constant_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, b_mu=b_mu, s_sigma=s_sigma):
@@ -62,9 +62,7 @@ def calculate_stochastic_path(mu, eta, sigma):
     pi_path[0] = mu
 
     for i in range(1, t + 1):
-        # tT = (t - i) / t
-        # pi_path[i] = mu if i == 0 else mu + sigma * np.sqrt((np.exp(-2 * eta * tT)) / (2 * eta)) * w[i] * np.sqrt(i/60)
-        pi_path[i] = pi_path[i - 1] + (eta * mu - eta * pi_path[i - 1]) / 60. + sigma * w[i] * np.sqrt(i / 60.)
+        pi_path[i] = pi_path[i - 1] + (eta * mu - eta * pi_path[i - 1]) / 60. + sigma * w[i] * np.sqrt(i / 60.) * np.sqrt(pi_path[i-1])
     return pi_path
 
 
