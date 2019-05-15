@@ -43,3 +43,4 @@ def calculate_survival_probability():
     denominator = p[0] - p[T]*np.exp(-r*t) - np.exp(r*eta)*(g(t+eta, d) - g(eta, d))
     cds_spread = r*(1-R)*(numerator/denominator)
     return p[T], cds_spread
+ 
