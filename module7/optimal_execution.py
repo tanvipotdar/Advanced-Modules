@@ -7,18 +7,6 @@ T = 1  # expiry (hours)
 N = 1e4  # number of shares
 s_sigma = 0.015  # vol of the stock
 s0 = 195.35  # initial stock price
-<<<<<<< HEAD
-phi = 1e-3  # urgency parameter
-alpha = 1e-3  # terminal liquidation penalty
-
-k_eta = 1  # mean reversion rate of k
-k_mu = 1e-3  # long running mean of k
-k_sigma = 0.01  # vol of k
-
-b_eta = 1  # mean reversion rate of b
-b_mu = 2e-3  # long running mean of b
-b_sigma = 0.01  # vol of b
-=======
 phi = 1e-3  # running inventory penalty
 alpha = 1e-3  # terminal liquidation penalty
 
@@ -29,13 +17,11 @@ k_sigma = 0.01  # vol of k
 b_eta = .1  # mean reversion rate of b
 b_mu = 1e-3  # long running mean of b
 b_sigma = 0.02  # vol of b
->>>>>>> 2705de09512138138f0642251f5d25ef8a2de478
 
 
 def run_almgren_chriss_with_constant_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, b_mu=b_mu, s_sigma=s_sigma):
     # time in minutes
     t = T * 60
-    dt = 1 / 60.
 
     # stochastic processes
     w = np.random.randn(t + 1)  # brownian motion for stock price, normal random variables
@@ -50,13 +36,14 @@ def run_almgren_chriss_with_constant_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, b_
 
     for i in range(t + 1):
         q[i] = N if i == 0 else q[i - 1] - min(v[i - 1], q[i - 1])
-        s[i] = s0 if i == 0 else max(s[i - 1] + (- b_mu * v[i - 1] * dt + s_sigma * w[i] * np.sqrt(i * dt)), 0)
+        s[i] = s0 if i == 0 else max(s[i - 1] + (- b_mu * v[i - 1] / 60. + s_sigma * w[i] * np.sqrt(i / 60.)), 0)
 
         tT = (t - i) / float(t)
         v_num = zeta * np.exp(gamma * tT) + np.exp(-gamma * tT)
         v_denom = zeta * np.exp(gamma * tT) - np.exp(-gamma * tT)
         v[i] = gamma * (v_num / v_denom) * q[i]
-        v[i] = max(v[i], 0) * dt
+        # divide by 60 as dt=1/60
+        v[i] = max(v[i], 0) / 60.
         e[i] = max(s[i] - k_mu * v[i], 0)
         if i == t:
             x[i] = 0
@@ -70,17 +57,12 @@ def run_almgren_chriss_with_constant_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, b_
 
 def calculate_stochastic_path(mu, eta, sigma):
     t = T * 60
-    dt = 1/60.
     w = np.random.randn(t + 1)  # brownian motion for the price impact param
     pi_path = np.zeros(t + 1)  # path for the price impact param
     pi_path[0] = mu
 
     for i in range(1, t + 1):
-<<<<<<< HEAD
-        pi_path[i] = pi_path[i - 1] + (eta * mu - eta * pi_path[i - 1]) * dt + sigma * w[i] * np.sqrt(pi_path[i-1] * dt)
-=======
         pi_path[i] = pi_path[i - 1] + (eta * mu - eta * pi_path[i - 1]) / 60. + sigma * w[i] * np.sqrt(pi_path[i-1]/60)
->>>>>>> 2705de09512138138f0642251f5d25ef8a2de478
     return pi_path
 
 
@@ -88,7 +70,6 @@ def run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, 
                                           s_sigma=s_sigma):
     # time in minutes
     t = T * 60
-    dt = 1 / 60.
 
     # stochastic processes
     w = np.random.randn(t + 1)  # brownian motion for stock price, normal random variables
@@ -110,13 +91,13 @@ def run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, 
         zeta[i] = (alpha - 0.5 * b[i] + np.sqrt(phi * k[i])) / (alpha - 0.5 * b[i] - np.sqrt(phi * k[i]))
 
         q[i] = N if i == 0 else q[i - 1] - min(v[i - 1], q[i - 1])
-        s[i] = s0 if i == 0 else max(s[i - 1] - b[i] * v[i - 1] * dt + s_sigma * w[i] * np.sqrt(i * dt), 0)
+        s[i] = s0 if i == 0 else max(s[i - 1] - b[i] * v[i - 1] / 60 + s_sigma * w[i] * np.sqrt(i / 60.), 0)
 
         tT = (t - i) / float(t)
         v_num = zeta[i] * np.exp(gamma[i] * tT) + np.exp(-gamma[i] * tT)
         v_denom = zeta[i] * np.exp(gamma[i] * tT) - np.exp(-gamma[i] * tT)
         v[i] = gamma[i] * (v_num / v_denom) * q[i]
-        v[i] = max(v[i], 0) * dt
+        v[i] = max(v[i], 0) / 60.
         e[i] = max(s[i] - k[i] * v[i], 0)
         if i == t:
             x[i] = 0
@@ -126,10 +107,7 @@ def run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, 
 
     x[t] = q[t] * (s[t] - alpha * q[t])
     return x.cumsum(), q, v
-<<<<<<< HEAD
-=======
 
->>>>>>> 2705de09512138138f0642251f5d25ef8a2de478
 
 def calculate_performance(mc_paths, alpha=alpha, phi=phi, T=T, k_mu=k_mu, k_eta=k_eta, k_sigma=k_sigma, b_mu=b_mu, b_eta=b_eta, b_sigma=b_sigma,
                           s_sigma=s_sigma):
@@ -140,13 +118,11 @@ def calculate_performance(mc_paths, alpha=alpha, phi=phi, T=T, k_mu=k_mu, k_eta=
     for x in range(mc_paths):
         cash_from_constant_strategy[x] = run_almgren_chriss_with_constant_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, b_mu=b_mu, s_sigma=s_sigma)[0][-1]
         cash_from_stochastic_strategy[x] = run_almgren_chriss_with_stochastic_pi(alpha=alpha, phi=phi, T=T, k_mu=k_mu, k_eta=k_eta, k_sigma=k_sigma,
-        b_mu=b_mu, b_eta=b_eta, b_sigma=b_sigma, s_sigma=s_sigma)[0][-1]
+                                                                                 b_mu=b_mu, b_eta=b_eta, b_sigma=b_sigma, s_sigma=s_sigma)[0][-1]
         performance[x] = (cash_from_stochastic_strategy[x] - cash_from_constant_strategy[x]) / cash_from_constant_strategy[x]
         performance[x] *= 10000
 
     return performance
-<<<<<<< HEAD
-=======
 
 
 def plot_income_and_inventory_against_cir_params(low_b, low_k, high_b, high_k, k_low, k_high, b_low, b_high, param_k, param_b):
@@ -292,4 +268,3 @@ def plot_all():
     ax4.plot(cx[:-1]-sx[:-1])
     plt.tight_layout()
     plt.show()
->>>>>>> 2705de09512138138f0642251f5d25ef8a2de478
