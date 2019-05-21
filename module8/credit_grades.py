@@ -17,13 +17,34 @@ r = 0.05 # risk free rate of interest
 R = 0.5 # recovery rate on underlying credit
 
 
-def g(x, d):
-    z = np.sqrt(0.25 + 2 * r/s_ref_sigma**2)
-    a = -np.log(d)/(s_ref_sigma*np.sqrt(x))
-    b = z*s_ref_sigma*np.sqrt(x)
-    param1 = d**(z+1/2)*norm.cdf(a-b)
-    param2 = d**(-z+1/2)*norm.cdf(a+b)
+def g(x, d, sigma):
+    z = np.sqrt(0.25 + 2 * r/sigma**2)
+    a = -np.log(d) / (sigma * np.sqrt(x))
+    b = z * sigma * np.sqrt(x)
+    param1 = d**(z+1/2) * norm.cdf(a-b)
+    param2 = d**(-z+1/2) * norm.cdf(a+b)
     return param1 + param2
+
+
+def creditgrades(r, t, S0=30, S_ref=30, sigma=0.35, D=10, L=0.5, lmbda=0.3, R=0.5):
+    d = (S0 + L*D)/(L*D) * np.exp(lmbda**2)
+    eta = lmbda**2 / sigma**2
+
+    a_squared = (sigma*(S_ref/(S_ref+L*D)))**2*t + lmbda**2
+    a = np.sqrt(a_squared)
+    prob = np.zeros(len(t))
+    cds_spread = np.zeros(len(t))
+
+    for i in range(len(t)):
+        prob[i] = norm.cdf(-a[i]/2 + np.log(d)/a[i]) - d*norm.cdf(-a[i]/2 - np.log(d)/a[i])
+
+    x1 = np.exp(r*eta)*(g(t+eta,d, sigma)-g(t,d, sigma))
+    x2 = 1 - prob*np.exp(-r*t) - np.exp(r*eta)*(g(t+eta, d, sigma)-g(t, d, sigma))
+    cds_spread = r*(1-R)* (x1/x2)
+    cds_spread /= 0.0001
+    df = pd.DataFrame(data=[t, prob, cds_spread, sigma]).T
+    df.columns = ['maturity', 'survival_prob', 'cds_spread', 'equity_vol']
+    return df
 
 
 def calculate_survival_probability_and_spread():
