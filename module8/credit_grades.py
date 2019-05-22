@@ -47,20 +47,20 @@ def creditgrades(r, t, S0=30, S_ref=30, sigma=0.35, D=10, L=0.5, lmbda=0.3, R=0.
     return df
 
 
-def calculate_survival_probability_and_spread():
-    t = T
-    d = (s0 + l*D)/(l*D) * np.exp(l_sigma**2)
-    eta = l_sigma**2/s_ref_sigma**2
+# def calculate_survival_probability_and_spread():
+#     t = T
+#     d = (s0 + l*D)/(l*D) * np.exp(l_sigma**2)
+#     eta = l_sigma**2/s_ref_sigma**2
 
-    asset_price = np.zeros(t+1)
-    prob = np.zeros(t+1)
+#     asset_price = np.zeros(t+1)
+#     prob = np.zeros(t+1)
 
-    for i in range(t+1):
-        param1 = s_ref_sigma * s_ref/(s_ref + l*D)
-        asset_price[i] = np.sqrt(param1**2*(i/60) + l_sigma**2)
-        prob[i] = norm.cdf(-asset_price[i]/2 + np.log(d)/asset_price[i]) - d*norm.cdf(-asset_price[i]/2 - np.log(d)/asset_price[i])
+#     for i in range(t+1):
+#         param1 = s_ref_sigma * s_ref/(s_ref + l*D)
+#         asset_price[i] = np.sqrt(param1**2*(i/60) + l_sigma**2)
+#         prob[i] = norm.cdf(-asset_price[i]/2 + np.log(d)/asset_price[i]) - d*norm.cdf(-asset_price[i]/2 - np.log(d)/asset_price[i])
 
-    numerator = 1 - prob[0] + np.exp(r*eta)*(g(t+eta, d) - g(eta, d))
-    denominator = prob[0] - prob[t]*np.exp(-r*t) - np.exp(r*eta)*(g(t+eta, d) - g(eta, d))
-    cds_spread = r*(1-R)*(numerator/denominator)
-    return prob[t], cds_spread/0.0001
+#     numerator = 1 - prob[0] + np.exp(r*eta)*(g(t+eta, d) - g(eta, d))
+#     denominator = prob[0] - prob[t]*np.exp(-r*t) - np.exp(r*eta)*(g(t+eta, d) - g(eta, d))
+#     cds_spread = r*(1-R)*(numerator/denominator)
+#     return prob[t], cds_spread/0.0001
