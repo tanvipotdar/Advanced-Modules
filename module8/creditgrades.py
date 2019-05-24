@@ -38,5 +38,4 @@ def creditgrades(L_mean, S0, S_ref, sigma_ref, D, lmbda, r, R, t):
     cds_spread = r*(1-R)*(x2/x3)*10000
     df = pd.DataFrame(data=[t, sigma_ref, S0, D, cds_spread, prob_t]).T
     df.columns = ['maturity', 'equity_vol', 'S0', 'debt', 'cds_spread', 'survival_probability']
-    # return cds_spread, prob_t
     return df
