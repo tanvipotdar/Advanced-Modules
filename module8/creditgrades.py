@@ -39,3 +39,4 @@ def creditgrades(L_mean, S0, S_ref, sigma_ref, D, lmbda, r, R, t):
     df = pd.DataFrame(data=[t, sigma_ref, S0, D, cds_spread, prob_t]).T
     df.columns = ['maturity', 'equity_vol', 'S0', 'debt', 'cds_spread', 'survival_probability']
     return df
+   
