@@ -1,0 +1,185 @@
+\documentclass[11t,a4paper]{article}
+
+\setlength{\topmargin}{0.0in}
+\setlength{\oddsidemargin}{0.33in}
+\setlength{\textheight}{9.0in}
+\setlength{\textwidth}{6.0in}
+\renewcommand{\baselinestretch}{1.25}
+
+\usepackage[utf8]{inputenc}
+\usepackage{mathrsfs, amsmath}
+\usepackage{geometry}
+\usepackage{physics}
+\usepackage[english]{babel}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\title{Credit Risk Modelling}
+\author{Candidate Number: 1027764}
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{empty}
+
+\newpage
+\tableofcontents
+\thispagestyle{empty}
+\newpage
+
+\begin{abstract}
+  Insert a concise summary here. Something about single name credit risk not multiname derivatives.
+\end{abstract}
+\newpage
+\setcounter{page}{1}
+
+\section{Introduction}
+\section{Structural Models}
+Structural models provide a view of default as an endogenous process by explicitly linking a firm's credit risk to its capital structure. In Merton's seminal paper, a company defaults if its asset value process falls below its debt level at maturity. The firm value, $V_t$ is expressed as a sum of its equity, $S_t$, and debt, $D_t$ processes. For any debt issued with a maturity of $T$, the equity is expressed as a call option on the underlying firm value:
+\begin{align}
+    S_T = \text{max}(V_T - K, 0)
+\end{align}
+where $K$ is the face value of the debt at maturity. If $V_T > K$, the debt-holders can be repaid the full amount and the shareholders get $V_T-K$. On the other hand, if $V_T<K$, the debt-holders can claim the assets leaving the shareholders with nothing and leading to default \cite{merton}. \\   
+ This model was further extended by Black and Cox (1976) to account for the possibility of default prior to maturity. In these models, a default event occurs the first time a firm's asset value hits a deterministic or stochastic barrier from above \cite{Brigobook}.  CreditGrades belongs to this class of first-passage time structural models. It differs from other models in that its goal is to produce spreads instead of objective probabilities \cite{sfin}. \\
+ Standard structural models assume a continuous diffusion process for the firm's value dynamics and complete information about the firm's value, default barrier and subsequently the 'nearness of default'. Since the probability of default for a continuous diffusion process in a short time interval is zero, this produces artificially low short-term credit spreads which tend to zero. It also creates the illusion that default is a predictable event \cite{asepp}. Additionally, other models are expressed in terms of theoretical concepts instead of market observables which makes them opaque. CreditGrades became the industry standard for credit risk modelling because it addressed these problems. This is further explained in section 2.1. Other extensions to the Merton model include stochastic interest rates, stochastic default barriers and jump diffusion dynamics in the firm's asset value \cite{levycg}.
+\subsection{CreditGrades}
+\subsubsection{Model Setup}
+Let us consider a continuous time model with maturity $T$ over a filtered probability space $(\Omega, \mathcal{F}, \mathcal{F}_{0\leq{t}\leq{T}}, Q)$ where $Q$ is a risk-neutral probability measure. The following key variables are used to define the model \cite{cg}:
+\begin{enumerate}
+\item $V_t$, the asset value process per share. It is modelled as a lognormal random variable driven by geometric brownian motion. 
+\begin{align} \frac{dV_t}{V_t} = \sigma dW_t + \mu_Ddt\end{align}
+where $W_t$ is a standard brownian motion, $\sigma$ is the asset volatility and $\mu_D$ is the asset's drift relative to the default barrier. The assumption of $\mu_D=0$ implies a stationary leverage where the barrier grows at the same drift as the firm value \cite{sfin}. Hence, 
+\begin{align} V_0e^{\sigma W_t-\frac{1}{2}\sigma^2t} \end{align}
+\item $L$, average recovery rate. It follows a lognormal distribution with mean $\bar{L}$ and percentage standard deviation $\lambda$.
+\begin{align} L  = \bar{L}e^{\lambda Z - \frac{1}{2}\lambda^2} \end{align}
+where $Z \sim N(0,1)$ and $Z$ is independent of the brownian motion $W_t$. 
+\item $D$, debt per share. It is the ratio of the value of the liabilities to the equivalent number of shares and is a strictly positive constant. It is calculated from financial data. 
+\item $L\cdot D$, default barrier. This is defined as the amount of the firm's assets that remain in case of default. 
+\begin{align} L D = \bar{L}De^{\lambda Z - \frac{1}{2}\lambda^2} \end{align}
+\item $S_t$, the stock price per share. Similar to (1), equity can be expressed a call option on the underlying assets; however, we use the default barrier as the strike instead of the face value of the debt at maturity. Thus it follows a shifted lognormal distribution \cite{sfin}. 
+\begin{align}
+    S_t = \text{max}(V_t - LD, 0)
+\end{align}
+\end{enumerate}
+CreditGrades follows a down-and-out random barrier model; default is avoided until the asset value crosses the default barrier \cite{sfin}.
+For an initial asset value of $V_0$, the time $\tau$ of default is defined as \cite{levycg}:
+\[\tau = \inf(t\in(0,T] : V_0e^{\sigma W_t-\frac{1}{2}\sigma^2t} \leq \bar{L}De^{\lambda Z - \frac{1}{2}\lambda^2})\]\
+where $\tau$ is an $\mathcal{F}$-stopping time. \\
+$Z$ introduces uncertainty in the default barrier to produce higher and more realistic short-term credit spreads. It also reflects the reality that the firm value might be much closer to default than it might seem and that the exact level of leverage cannot be known due to loans that are off the balance sheet. This also makes default seem much more unpredictable \cite{cg}.  
+\\
+\\
+We use a time-shifted brownian motion to state the cumulative distribution function of survival probabilities of a firm up to time $t$ \cite{cg}:
+\begin{gather}
+P(t) = \Phi(-\frac{A_t}{2} + \frac{\log{d}}{A_t}) - d \Phi(\frac{A_t}{2} - \frac{\log{d}}{A_t})\\
+d = \frac{V_0e^{\lambda^2}}{\bar{L}D} \\
+A^2_t = \sigma^2t + \lambda^2
+\end{gather}
+where $\Phi$ is the CDF of the normal distribution. \\
+The par spread for a CDS with maturity $t$ is:
+\begin{gather}
+c^* = r(1-R)\frac{1-P(0)+e^{r\xi}(G(t+\xi) - G(\xi))}{P(0)-P(t)e^{-rt}-e^{r\xi}(G(t+\xi) - G(\xi))} \\
+G(u) = d^{z+1/2}\Phi(-\frac{\log{d}}{\sigma\sqrt{u}} - z\sigma\sqrt{u}) + d^{-z+1/2}\Phi(-\frac{\log{d}}{\sigma\sqrt{u}} + z\sigma\sqrt{u}) 
+\end{gather} 
+ where $r$ is the risk-free interest rate, $R$ is the expected recovery rate of a specific class of a firm's debt, $z = \sqrt{\frac{1}{4} + \frac{2r}{\sigma^2}}$ and $\xi = \frac{\lambda^2}{\sigma^2}$.
+\paragraph {Market calibration}
+Unlike previous structural models, CreditGrades aims to use observable market parameters to calculate credit spreads so it can better capture the dynamics of market data and is easy to implement. For the initial asset value $V_0$, we have:
+\begin{align}
+    V_0 = S + \bar{L}D
+\end{align}
+As the equity and asset volatility are related by:
+\begin{align}
+    \sigma_s = \sigma \frac{V}{S}\pdv{S}{V}
+\end{align}
+Using (12), this gives us:
+\begin{align}
+    \sigma = \sigma_s \frac{S}{S + \bar{L}D}
+\end{align}
+Using historial data to estimate the stock price and volatility, we can rewrite (8) and (9) as:
+\begin{gather}
+d = \frac{S_0 + \bar{L}D}{\bar{L}D} e^{\lambda^2}\\
+A^2_t = (\sigma_S^*\frac{S^*}{S^*+\bar{L}D})^2t + \lambda^2
+\end{gather}
+where $S_0$ is the initial stock price, $S^*$ is a historical stock price and $\sigma_S^*$ is the historical equity volatility. 
+\subsubsection{Model Limitations}
+Some of the limitations of the CreditGrades model are:
+\begin{enumerate}
+    \item In the CreditGrades model, since the equity process follows a shifted lognormal distribution, the equity volatility becomes a local volatility function which depends on the current stock price. 
+    \[\sigma_s = \sigma (1+\frac{\bar{L}{D}}{S_t})\]
+    Thus, the model can produce the implied volatility skew but it is not able to reflect unpredictable credit events in the volatility as it is highly dependent on the firm's leverage ratio. In the CreditGrades case studies, using the 1000-day historical volatility lead to robust predictions in stable times for the firm but it lagged true market levels during times of crisis. This suggests that CreditGrades performance for obligors with low credit might be better with implied volatility \cite{cgvol}. 
+    \item The stochastic default barrier is meant to addresses the problem of artificially low credit spreads. However, since this barrier is unobservable, it is difficult to choose the best distribution to model its behaviour. It may behave differently depending on the firm sector, for instance, banks are much more heavily regulated resulting in a more conservative default barrier \cite{levycg}. Low short-term credit spreads can be addressed by modelling the evolution of firm value as a jump diffusion process. 
+\end{enumerate}
+\subsection{Extensions}
+\subsubsection{Jump diffusion models}
+Sudden drops in the firm value can occur around the time of default as substantial accounting information is revealed to the market which makes the price jump. At other times, drops can occur due to lawsuits or financial turmoil. Jumps in the asset value dynamics can model such sudden drops unlike the continuous diffusion process used by CreditGrades to model asset value. Jump-diffusion models can also produce more flexible credit spreads, including flat or downward sloping ones while CreditGrades is only able to model upward sloping spread curves. This makes them more effective at modelling extreme events \cite{zhou}. 
+Under this model, $V_t$ has the following dynamics:
+\begin{gather}
+    \frac{dV_t}{V_t} = \mu dt + \sigma dW_t + dJ_t \\
+    V_t = V_0 e^{\mu t + \sigma W_t - \frac{1}{2}\sigma^2t + J_t} 
+\end{gather}
+where $\mu$ is the asset drift, $\sigma$ is the asset volatility, $W_t$ is a standard brownian motion and \[J_t = \sum_{k=1}^{N_t}Y_k\]
+is a compound Poisson process where $Y_k$ are independent and identically distributed jump sizes and $N_t$ is a Poisson process with jump intensity $\lambda$. \\
+In Zhou's model, jump sizes were lognormally distributed so that:
+\begin{align}
+
+\end{align}
+
+\section{Intensity Models}
+
+\subsection{Model Setup}
+\subsection{Comparison with structural models}
+\section{Numerical Simulations}
+\section{Recent Research}
+\section{Conclusion}
+\newpage
+\begin{thebibliography}{1}
+\bibitem{merton}
+Merton R. (1974).  On the Pricing of Corporate Debt: The Risk Structure of Interest Rate. Journal of Finance, 29, 449–470.
+
+\bibitem{Brigobook}
+Brigo Interest rate modelling
+
+\bibitem{levycg}
+An extension of CreditGrades model approach with Levy processes
+
+\bibitem{cg}
+credit grades tech doc
+
+\bibitem{sfin}
+Incorporating Equity Derivatives Into the CreditGrades Model
+
+\bibitem{cgvol}
+The Information Content of Option-Implied Volatility for Credit Default Swap Valuation
+
+\bibitem{asepp}
+Extended CreditGrades Model with Stochastic Volatility and Jumps
+
+\bibitem{zhou}
+zhou 
+
+\end{thebibliography}
+\end{document}
