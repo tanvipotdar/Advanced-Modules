@@ -133,9 +133,8 @@ Some of the limitations of the CreditGrades model are:
     Thus, the model can produce the implied volatility skew but it is not able to reflect unpredictable credit events in the volatility as it is highly dependent on the firm's leverage ratio. In the CreditGrades case studies, using the 1000-day historical volatility lead to robust predictions in stable times for the firm but it lagged true market levels during times of crisis. This suggests that CreditGrades performance for obligors with low credit might be better with implied volatility \cite{cgvol}. 
     \item The stochastic default barrier is meant to addresses the problem of artificially low credit spreads. However, since this barrier is unobservable, it is difficult to choose the best distribution to model its behaviour. It may behave differently depending on the firm sector, for instance, banks are much more heavily regulated resulting in a more conservative default barrier \cite{levycg}. Low short-term credit spreads can be addressed by modelling the evolution of firm value as a jump diffusion process. 
 \end{enumerate}
-\subsection{Extensions}
-\subsubsection{Jump diffusion models}
-Sudden drops in the firm value can occur around the time of default as substantial accounting information is revealed to the market which makes the price jump. At other times, drops can occur due to lawsuits or financial turmoil. Jumps in the asset value dynamics can model such sudden drops unlike the continuous diffusion process used by CreditGrades to model asset value. Jump-diffusion models can also produce more flexible credit spreads, including flat or downward sloping ones while CreditGrades is only able to model upward sloping spread curves. This makes them more effective at modelling extreme events \cite{zhou}. 
+\paragraph {Jump diffusion models}
+Sudden drops in the firm value can occur around the time of default as substantial accounting information is revealed to the market which makes the price jump. At other times, drops can occur due to lawsuits or financial turmoil. Jumps in the asset value dynamics can model sudden changes in firm value unlike the continuous diffusion process used by CreditGrades to model asset value. Jump-diffusion models can also produce more flexible credit spreads, including flat or downward sloping ones while CreditGrades is only able to model upward sloping spread curves. This makes them more effective at modelling extreme events \cite{zhou}. 
 Under this model, $V_t$ has the following dynamics:
 \begin{gather}
     \frac{dV_t}{V_t} = \mu dt + \sigma dW_t + dJ_t \\
@@ -145,12 +144,16 @@ where $\mu$ is the asset drift, $\sigma$ is the asset volatility, $W_t$ is a sta
 is a compound Poisson process where $Y_k$ are independent and identically distributed jump sizes and $N_t$ is a Poisson process with jump intensity $\lambda$. \\
 In Zhou's model, jump sizes were lognormally distributed so that:
 \begin{align}
-
+\ln(Y_k) \sim N(\mu_y, \sigma^2_y)
 \end{align}
 
 \section{Intensity Models}
-
+Intensity models, pioneered by Jarrow and Turnbull (1995), assume that default occurs completely by surprise at an inaccessible time and aim to model the conditional law of this random time \cite{rf}. While structural models like CreditGrades assume default to be completely determined by the asset value process and the default barrier, intensity models treat default as an exogenous process that is unpredictable and may or may not be related to the asset value \cite {comparison}. This is more likely to mirror the real world where default often happens unexpectedly. CreditGrades assumes complete information about the firm's assets and liabilities but intensity models approach the problem with a much less detailed information set, similar to the market perspective. However, while CreditGrades can provide a theoretical explanation for default, intensity models are  do not provide any economic rationale for default 
 \subsection{Model Setup}
+Let us consider a filtered probability space $(\Omega, \mathcal{F}, \mathcal{F}_{0\leq{t}\leq{T}}, Q)$ where $Q$ is a risk-neutral probability measure. In the simplest intensity model, time of default is modelled as the first jump of a time homogenous Poisson process, ${M_t, t\geq 0}$. According to \cite{Brigobook}, $M_t$ can be defined as a unit-jump increasing, right continuous stochastic process with stationary independent increments. If we define the default time $\tau$ as the first jump of $M$, there exists a positive constant $\bar{\gamma}$ such that:
+\begin{align}Q(M_t=0)=Q(\tau> t)=e^{-\bar{\gamma}t}\end{align}
+Thus this gives us the survival probability of the process. 
+
 \subsection{Comparison with structural models}
 \section{Numerical Simulations}
 \section{Recent Research}
@@ -180,6 +183,12 @@ Extended CreditGrades Model with Stochastic Volatility and Jumps
 
 \bibitem{zhou}
 zhou 
+
+\bibitem{comparison}
+Structure and Intensity Based Approach in Credit Risk Models: A Literature Review
+
+\bibitem{rf}
+Reduced form modelling for credit risk, Yann Le Cam
 
 \end{thebibliography}
 \end{document}
