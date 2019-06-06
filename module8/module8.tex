@@ -66,8 +66,8 @@ Structural models provide a view of default as an endogenous process by explicit
 \end{align}
 where $K$ is the face value of the debt at maturity. If $V_T > K$, the debt-holders can be repaid the full amount and the shareholders get $V_T-K$. On the other hand, if $V_T<K$, the debt-holders can claim the assets leaving the shareholders with nothing and leading to default \cite{merton}. \\   
  This model was further extended by Black and Cox (1976) to account for the possibility of default prior to maturity, giving rise to the family of first passage time models. These models follow the logic of barrier option pricing where a default event occurs the first time a firm's asset value hits a deterministic barrier from above \cite{Brigobook}. Other extensions to the original Merton model include stochastic interest rates, stochastic default barriers and jump diffusion dynamics in the firm's asset value \cite{levycg}.
- Structural models make strong assumptions regarding the firm's asset value process, capital and debt structures. The firm value dynamics typically follow a continuous diffusion process similar to stocks in the Black-Scholes framework. They assume complete information about a firm's balance-sheet, its default barrier and 'nearness to default'. If the firm value is far from the barrier, it cannot default in the short term as the probability of a sudden drop in a continuous diffusion process is zero. This produces artificially low credit spreads with short maturities and gives the illusion of default being a predictable event. This is contradicted by empirical market data.\\
- However the structural approach attempts to provide an explanation for the default and link it TODO COMPELTE. 
+ Structural models make strong assumptions regarding the firm's asset value process, capital and debt structures. The firm value dynamics typically follow a continuous diffusion process similar to stocks in the Black-Scholes framework. They assume complete information about a firm's balance-sheet, its default barrier and 'nearness to default'. If the firm value is far from the barrier, it cannot default in the short term as the probability of a sudden drop in a continuous diffusion process is zero. This produces artificially low credit spreads with short maturities and gives the illusion of default being a predictable event. This may seem reasonable as firms that are performing well do not suddenly default; however, it is contradicted by empirical market data with non-zero short-term credit spreads.\\
+ 
 \subsection{CreditGrades}
 \subsubsection{Origins}
 CreditGrades belongs to the class of first-passage time structural models and provides a link between the credit and equity markets. It differs from other structural models in that instead of predicting default probabilities, its goal is to track credit spreads and identify how they change with market conditions and the firm's credit quality \cite{sfin}. It uses market spreads rather than propeitary default probabilities as training data. It also takes a more practical approach to parameter estimation; instead of modelling unobservable parameters like the firm value and volatility, it provides a closed-form formula with purely market observable inputs with easily ascertainable sensitivities and impacts. This made it the industry standard for calculating credit spreads and survival probabilities \cite{cgtechdoc}. It uses a stochastic default barrier to address the unrealistically low short-term credit spreads in a pure diffusion and fixed default barrier model. More so than credit pricing, CreditGrades can be used to assess the level of risk in a portfolio, managing the credit quality of a firm and to analyse trading opportunities \cite{cgtechdoc}. 
@@ -130,6 +130,7 @@ d = \frac{S_0 + \bar{L}D}{\bar{L}D} e^{\lambda^2}\\
 A^2_t = (\sigma_S^*\frac{S^*}{S^*+\bar{L}D})^2t + \lambda^2
 \end{gather}
 where $S_0$ is the initial stock price, $S^*$ is a historical stock price and $\sigma_S^*$ is the historical equity volatility. 
+
 \subsubsection{Model Limitations}
 Some of the limitations of the CreditGrades model are:
 \begin{enumerate}
@@ -137,20 +138,34 @@ Some of the limitations of the CreditGrades model are:
     \[\sigma_s = \sigma (1+\frac{\bar{L}{D}}{S_t})\]
     Thus, the model can produce the implied volatility skew but it is not able to reflect unpredictable credit events in the volatility as it is highly dependent on the firm's leverage ratio. In the CreditGrades case studies, using the 1000-day historical volatility lead to robust predictions in stable times for the firm but it lagged true market levels during times of crisis. This suggests that CreditGrades performance for obligors with low credit might be better with implied volatility \cite{cgvol}. 
     \item The stochastic default barrier is meant to addresses the problem of artificially low credit spreads. However, since this barrier is unobservable, it is difficult to choose the best distribution to model its behaviour. It may behave differently depending on the firm sector, for instance, banks are much more heavily regulated resulting in a more conservative default barrier \cite{levycg}. Low short-term credit spreads can be addressed by modelling the evolution of firm value as a jump diffusion process. 
+    \item CreditGrades assumes a constant risk-free interest rate instead of adopting a stochastic interest rate model as is observed in the market. The correlation between credit risk and interest rates is not explored. This is primarily important for pricing defaultable bonds. 
+    \item CreditGrades adopts a rather simplistic capital structure for the firm and does not attempt to model coupons and more exotic options. 
 \end{enumerate}
+Modelling stochastic interest rates, a sophisticated capital structure for the firm and a more realistic firm value process with jumps can increase the complexity of the model and make it more difficult to implement and use. CreditGrades became the industry standard largely because it used market observable input parameters that were easily estimated. Some of its limitations arise because of this compromise in complexity. 
+
 \subsubsection {Comparison with jump diffusion models}
-Sudden drops in the firm value can occur around the time of default as substantial accounting information is revealed to the market. At other times, drops in firm value can occur due to lawsuits or financial turmoil. Jumps in the asset value dynamics can model these sudden changes in firm value unlike the continuous diffusion process used by CreditGrades. This helps to produce non-zero credit spreads and default probabilities for short-term maturities. Jump-diffusion models can also produce more flexible credit spreads, including flat or downward sloping ones while typical structural models are only able to model upward sloping spread curves. This makes them more effective at modelling extreme events \cite{zhou}. Thus, jump diffusion models combine the unpredictability of default seen in intensity models and the theoretical insight into default from structural models.\\
-Under a typical jump diffusion model, $V_t$ has the following dynamics:
+In Zhou's jump diffusion model \cite[zhou}, the asset value at time $t$, $V_t$, has the following dynamics:
 \begin{gather}
-    \frac{dV_t}{V_t} = \mu dt + \sigma dW_t + dJ_t \\
-    V_t = V_0 e^{\mu t + \sigma W_t - \frac{1}{2}\sigma^2t + J_t} 
+    \frac{dV_t}{V_t} = (\mu - \lambda\nu) dt + \sigma dW_t + (\Pi -1)dJ_t \\
+    \Pi = 
+    \begin{cases}
+    1, for no jump\\
+    <0, for downward jump\\
+    >0, for upward jump
+    \end{cases}
 \end{gather}
-where $\mu$ is the asset drift, $\sigma$ is the asset volatility, $W_t$ is a standard brownian motion and \[J_t = \sum_{k=1}^{N_t}Y_k\]
-is a compound Poisson process where $Y_k$ are independent and identically distributed jump sizes and $N_t$ is a Poisson process with jump intensity $\lambda$. \\
-In Zhou's model, jump sizes were lognormally distributed so that:
+where $\mu$ is the asset drift excluding jumps, $\lambda$ is the intensity of the Poisson process producing the jumps, $\nu$ is the expected jump value, $\sigma$ is the asset volatility excluding jumps, $W_t$ is a standard brownian motion, $\Pi$ is the jump amplitude with expected value $\nu +1$ and $J_t$ is a Poisson process with jump intensity $\lambda$. $dW_t, dJ_t \text{and} \Pi$ are mutually independent. \\
+The jump sizes are lognormally distributed so that:
 \begin{align}
-\ln(Y_k) \sim N(\mu_y, \sigma^2_y)
+\ln(\Pi) \sim \phi(\mu_\pi, \sigma^2_\pi)
 \end{align}
+
+Advantages of jump-diffusion models, according to \cite{zhou}, are:
+\begin{enumerate}
+\item Sudden drops in the firm value can occur around the time of default as substantial accounting information is revealed to the market. At other times, drops in firm value occur as investors become aware of lawsuits or financial turmoil. Jumps in the asset value dynamics can model these unexpected changes in firm value unlike the continuous diffusion process used by CreditGrades which can only cover asset value marginal fluctuations. This helps to produce non-zero credit spreads and default probabilities for short-term maturities. 
+\item Jump-diffusion models can also produce more flexible credit spreads, including flat or downward sloping ones while typical structural models are only able to model upward sloping spread curves. This makes them more effective at modelling extreme events.  
+\end{enumerate}
+Jump diffusion models combine the unpredictability of default from intensity models and the theoretical explanation for default from structural models. They realistically model the two routes to default; a sudden drop due to external reasons or a slowly decreasing asset value. However, parameter estimation and implementation is more complex than CreditGrades which makes them less practical to use. 
 
 \section{Intensity Models}
 Intensity or reduced-form models, pioneered by Jarrow and Turnbull (1995), assume that default occurs completely by surprise at an inaccessible time and aim to model the conditional law of this random time \cite{rf}. 
@@ -185,7 +200,6 @@ where $R$ is the periodic CDS rate, $LGD$ is the loss given default, $\alpha_i=T
 \end{align}
 where we have to find the intensity parameters \cite{Brigobook}. 
 
-
 \subsection{Comparison with structural models}
 Structural models treat default as predictable but intensity models treat it as an inaccessible time. While structural models like CreditGrades assume default to be completely determined by the asset value process and the default barrier, intensity models treat default as an exogenous process that is unpredictable and may or may not be related to the asset value \cite {comparison}. This is more likely to mirror the real world where default often happens unexpectedly. Structural models calculate credit spreads based on the internal structure of the firm which requires balance sheet and accounting information. However, this is published quarterly at most which makes it difficult to calibrate the term structure of spreads. Meanwhile, reduced-form models extract the probability of default directly from market data and use it to model the default event which makes them faster and easier to implement. They are also much more flexible in that they are able to calibrate credit instruments with different maturities which makes them more suited to price exotic credit derivatives. A disadvantage of the reduced-form approach is that the model is not able to offer a theoretical insight into why the default occurred. Structural models treat default as a consequence of of the firm value and can thus provide an economic interpretation behind it.  It also does not offer any scope for credit risk analysis unlike CreditGrades which gives a view on the credit risk outlook of the firm \cite{cgtechdoc}. 
 
@@ -193,6 +207,7 @@ Structural models treat default as predictable but intensity models treat it as 
 \section{Recent Research}
 \section{Conclusion}
 \newpage
+
 \begin{thebibliography}{1}
 \bibitem{merton}
 Merton R. (1974).  On the Pricing of Corporate Debt: The Risk Structure of Interest Rate. Journal of Finance, 29, 449–470.
